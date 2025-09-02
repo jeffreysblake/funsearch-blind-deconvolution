@@ -1,4 +1,6 @@
 # FunSearch
+This is a fork of the Google funsearch implementation, targeted towards optimizing the convergence rate of the Lucy-Rchardson blind deconvolution algorithm.
+
 
 This repository accompanies the publication
 
