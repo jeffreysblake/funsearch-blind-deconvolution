@@ -1,5 +1,70 @@
-# FunSearch
-This is a fork of the Google funsearch implementation, targeted towards optimizing the convergence rate of the Lucy-Rchardson blind deconvolution algorithm.
+# FunSearch Framework
+
+**General-purpose program synthesis framework using evolutionary algorithms + LLMs**
+
+Transform the Google DeepMind FunSearch algorithm into a production-ready framework with web UI, local LLM integration, and comprehensive experiment tracking.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+ (for frontend)
+- LM Studio (optional, for local LLMs)
+- Docker (optional, for secure sandboxing)
+
+### Installation
+
+```bash
+# Install Python dependencies
+pip install -e ".[dev]"
+
+# Install frontend dependencies
+cd frontend
+npm install
+```
+
+### Run Your First Test
+
+```bash
+# Test configuration and components
+python -m cli.main test
+
+# Initialize a new project
+python -m cli.main init my-project
+
+# Display system info
+python -m cli.main info
+```
+
+---
+
+## 📊 Current Status
+
+- ✅ **Phase 0 Complete**: Foundation with mocks, React frontend, CLI tool
+- 🚧 **Phase 1 In Progress**: Backend API, WebSocket, MLflow integration
+- 📅 **Phase 2 Planned**: LM Studio + Docker production implementation
+
+**Service Ports**: Frontend (7350), Backend (7351), MLflow (7352), Redis (7353)
+
+Full documentation in [`/specs`](specs/) directory.
+
+---
+
+## 📖 Documentation
+
+- **[FRAMEWORK_PLAN.md](FRAMEWORK_PLAN.md)** - Complete 12-week roadmap
+- **[specs/](specs/)** - Technical specifications (11 documents)
+- **[API_SPECIFICATION.md](specs/API_SPECIFICATION.md)** - REST + WebSocket API
+- **[FRONTEND_DESIGN.md](specs/FRONTEND_DESIGN.md)** - UI wireframes & components
+
+---
+
+## Original Google DeepMind FunSearch
+
+This framework is built upon the Google DeepMind FunSearch implementation, originally targeted towards optimizing the convergence rate of the Lucy-Richardson blind deconvolution algorithm.
 
 
 This repository accompanies the publication

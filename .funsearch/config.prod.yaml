@@ -1,0 +1,41 @@
+# Production configuration (for local machine with real services)
+mode: production
+
+llm:
+  provider: lm_studio
+  model: qwen/qwen3-vl-8b
+  base_url: http://localhost:1234/v1
+  temperature: 1.0
+  max_tokens: 512
+  timeout: 30
+
+sandbox:
+  provider: docker
+  max_workers: 16
+  timeout: 30
+  image: funsearch-sandbox:latest
+  limits:
+    memory: 256m
+    cpu_cores: 1
+
+funsearch:
+  samples_per_prompt: 4
+  num_islands: 10
+  reset_period: 80000
+  cluster_sampling_temperature_init: 0.1
+  cluster_sampling_temperature_period: 20000
+
+execution:
+  max_iterations: 100000
+  checkpoint_interval: 1000
+  log_level: INFO
+
+database:
+  url: sqlite:///production.db
+  echo: false
+  pool_size: 20
+  max_overflow: 0
+
+mlflow:
+  tracking_uri: http://localhost:7352
+  experiment_name: funsearch
