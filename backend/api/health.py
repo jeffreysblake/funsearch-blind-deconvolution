@@ -1,9 +1,12 @@
 """Health check endpoint."""
 
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter
 from pydantic import BaseModel
+
+from config.detection import detect_lm_studio, check_mlflow
 
 router = APIRouter()
 
@@ -14,7 +17,10 @@ class ServiceStatus(BaseModel):
     database: str = "connected"
     redis: str = "not_configured"
     mlflow: str = "not_configured"
+    mlflow_uri: Optional[str] = None
     lm_studio: str = "disconnected"
+    lm_studio_model: Optional[str] = None
+    lm_studio_models: list[str] = []
     docker: str = "unavailable"
 
 
@@ -39,16 +45,25 @@ async def health_check():
     services = ServiceStatus()
     errors = []
 
-    # Check LM Studio
-    try:
-        import httpx
-
-        response = httpx.get("http://localhost:1234/v1/models", timeout=2)
-        if response.status_code == 200:
-            services.lm_studio = "connected"
-    except Exception as e:
+    # Check LM Studio using detection utility
+    lm_studio_status = detect_lm_studio()
+    if lm_studio_status["available"]:
+        services.lm_studio = "connected"
+        services.lm_studio_model = lm_studio_status["current_model"]
+        services.lm_studio_models = lm_studio_status["models"]
+    else:
         services.lm_studio = "disconnected"
-        errors.append(f"LM Studio not responding: {str(e)}")
+        if lm_studio_status["error"]:
+            errors.append(f"LM Studio: {lm_studio_status['error']}")
+
+    # Check MLflow using detection utility
+    mlflow_status = check_mlflow()
+    if mlflow_status["available"]:
+        services.mlflow = "connected"
+        services.mlflow_uri = mlflow_status["tracking_uri"]
+    else:
+        services.mlflow = "disconnected"
+        # Don't add to errors since MLflow is optional
 
     # Check Docker
     try:
@@ -57,12 +72,13 @@ async def health_check():
         client = docker.from_env()
         client.ping()
         services.docker = "available"
-    except Exception as e:
+    except Exception:
         services.docker = "unavailable"
-        errors.append(f"Docker not available: {str(e)}")
+        # Don't add to errors since Docker is optional for development
 
     # Determine overall status
-    status = "healthy" if not errors else "degraded"
+    # System is healthy even if optional services (LM Studio, Docker, MLflow) are down
+    status = "healthy"
 
     return HealthResponse(
         status=status,

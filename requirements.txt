@@ -1,0 +1,57 @@
+# Core Dependencies
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+sqlalchemy>=2.0.0
+python-multipart>=0.0.6
+
+# Database
+alembic>=1.12.0  # Database migrations
+
+# HTTP clients
+requests>=2.31.0
+httpx>=0.25.0
+
+# WebSocket
+websockets>=12.0
+python-socketio>=5.10.0
+
+# Configuration
+pyyaml>=6.0.1
+python-dotenv>=1.0.0
+
+# Logging
+python-json-logger>=2.0.7
+
+# LM Studio / OpenAI-compatible API (optional but recommended for Phase 2)
+openai>=1.3.0  # Optional: For OpenAI-compatible API if needed
+
+# MLflow (optional but recommended for Phase 3)
+mlflow>=2.8.0  # Optional: For experiment tracking
+
+# Docker SDK (optional, for sandbox)
+docker>=6.1.3  # Optional: For Docker sandbox
+
+# Scientific Computing (for examples and evaluators)
+numpy>=1.24.0
+scipy>=1.11.0
+
+# CLI
+typer[all]>=0.9.0
+rich>=13.7.0
+
+# Testing
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+pytest-cov>=4.1.0
+httpx>=0.25.2  # For testing FastAPI
+
+# Code Quality
+black>=23.12.0
+ruff>=0.1.7
+mypy>=1.7.1
+
+# Frontend Build (if building from source)
+# Note: Frontend is pre-built, these are only needed for development
+# nodejs>=18.0.0  # Via system package manager
+# npm>=9.0.0      # Via system package manager
