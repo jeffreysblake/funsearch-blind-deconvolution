@@ -322,11 +322,14 @@ version: '3.8'
 services:
   funsearch-app:
     build: .
+    ports:
+      - "7351:7351"  # FastAPI backend
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - SANDBOX_MAX_WORKERS=16
       - SANDBOX_IMAGE=funsearch-sandbox:latest
+      - PORT=7351
 ```
 
 ### Scaling (Kubernetes - Future)

@@ -432,7 +432,7 @@ database:
   url: "sqlite:///production.db"
 
 mlflow:
-  tracking_uri: "http://localhost:5000"
+  tracking_uri: "http://localhost:7352"
 ```
 
 ---
