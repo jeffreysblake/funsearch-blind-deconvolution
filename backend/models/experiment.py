@@ -40,6 +40,7 @@ class Experiment(Base):
         Enum(ExperimentStatus), nullable=False, default=ExperimentStatus.PENDING, index=True
     )
     config = Column(JSON, nullable=False)  # Store entire experiment config as JSON
+    specification_file = Column(String(512))  # Path to problem specification
     started_at = Column(DateTime, index=True)
     completed_at = Column(DateTime)
     paused_at = Column(DateTime)

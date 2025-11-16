@@ -119,6 +119,69 @@ With both backend and frontend running:
 
 ---
 
+## 🧪 Run Convergence Tests (NEW!)
+
+Test the complete FunSearch flow **without LM Studio**:
+
+```bash
+# Automated test with monitoring
+./test_convergence.sh
+
+# Choose between:
+# 1. Number Sequence (5-10 min, quick test)
+# 2. Knapsack Heuristic (15-30 min, realistic test)
+```
+
+The script will:
+- ✅ Create a project
+- ✅ Start an experiment
+- ✅ Monitor progress in real-time
+- ✅ Show final results
+
+**Manual test alternative:**
+
+```bash
+# Start backend
+./start-api.sh
+
+# In another terminal, create project
+curl -X POST http://localhost:7351/api/v1/projects \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test Project",
+    "description": "Convergence test",
+    "problem_type": "optimization",
+    "specification": {
+      "file_path": "examples/knapsack/specification.py",
+      "evolve_function": "priority",
+      "evaluate_function": "evaluate"
+    }
+  }' | jq
+
+# Start experiment (replace PROJECT_ID)
+curl -X POST http://localhost:7351/api/v1/projects/{PROJECT_ID}/experiments \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Quick Test",
+    "config": {
+      "llm": {"provider": "mock"},
+      "sandbox": {"provider": "subprocess"},
+      "funsearch": {
+        "samples_per_prompt": 4,
+        "num_islands": 10,
+        "reset_period": 1800
+      },
+      "execution": {"max_iterations": 1000}
+    }
+  }' | jq
+
+# Monitor via WebSocket
+websocat ws://localhost:7351/ws/experiments/{EXPERIMENT_ID}
+# Send: {"type": "subscribe", "channels": ["metrics", "logs"]}
+```
+
+---
+
 ## 🔍 Verify Everything Works
 
 Run this checklist:
@@ -170,22 +233,26 @@ rm funsearch.db
 
 ## 📖 Next Steps
 
-- Read [FRAMEWORK_PLAN.md](FRAMEWORK_PLAN.md) for the complete roadmap
-- Browse [specs/](specs/) for detailed technical documentation
-- Check [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) for all endpoints
-- View [FRONTEND_DESIGN.md](specs/FRONTEND_DESIGN.md) for UI components
+- **Test without LM Studio**: Run `./test_convergence.sh` (see examples above)
+- **Read examples**: Check `examples/number_sequence/` and `examples/knapsack/`
+- **Understand features**: See [FEATURES_WITHOUT_LM_STUDIO.md](FEATURES_WITHOUT_LM_STUDIO.md)
+- **Plan ahead**: Read [FRAMEWORK_PLAN.md](FRAMEWORK_PLAN.md) for the complete roadmap
+- **Browse specs**: Check [specs/](specs/) for detailed technical documentation
+- **API reference**: See [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) for all endpoints
+- **UI design**: View [FRONTEND_DESIGN.md](specs/FRONTEND_DESIGN.md) for UI components
 
 ---
 
 ## 🎯 What's Available Now
 
 ### Backend (Phase 1 ✅)
-- Complete REST API
+- Complete REST API (16 endpoints)
 - 5 endpoint groups (Health, Projects, Experiments, Models, Templates)
 - WebSocket for real-time updates
 - Auto-generated OpenAPI docs
 - CORS configured for frontend
 - SQLite database with SQLAlchemy
+- **NEW**: Experiment runner service (works without LM Studio!)
 
 ### Frontend (Phase 0 ✅)
 - Complete React app with TypeScript
@@ -197,12 +264,20 @@ rm funsearch.db
 
 ### Core (Phase 0 ✅)
 - Configuration system
-- Mock LLM and evaluator
+- Mock LLM and evaluator (template-based)
 - Factory pattern
 - Database models
 - CLI tool
+- **NEW**: Core FunSearch algorithm (from Google DeepMind)
+
+### Examples (NEW! ✅)
+- Number Sequence: 5-10 min convergence test
+- Knapsack Heuristic: 15-30 min realistic test
+- Both work with mock LLM (no LM Studio needed)
 
 ---
 
-**Status**: Phases 0 & 1 Complete ✅
-**Ready for**: Local testing with LM Studio + Docker (Phase 2)
+**Status**: Phases 0 & 1 Complete ✅ + **Working End-to-End Tests**
+**Ready for**:
+- ✅ **Testing the full framework with mock LLM**
+- ⏭️ Local testing with LM Studio + Docker (Phase 2)

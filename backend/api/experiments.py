@@ -1,14 +1,16 @@
 """Experiments API endpoints."""
 
+import asyncio
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from backend.models import Experiment, ExperimentStatus, Project, get_db
+from backend.services.experiment_runner import run_experiment
 
 router = APIRouter()
 
@@ -108,7 +110,10 @@ async def list_experiments(project_id: UUID, db: Session = Depends(get_db)):
     status_code=202,
 )
 async def create_experiment(
-    project_id: UUID, experiment_data: ExperimentCreate, db: Session = Depends(get_db)
+    project_id: UUID,
+    experiment_data: ExperimentCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
 ):
     """
     Create and start a new experiment.
@@ -120,6 +125,12 @@ async def create_experiment(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    # Verify project has specification file
+    if not project.specification_file:
+        raise HTTPException(
+            status_code=400, detail="Project has no specification file"
+        )
+
     # Create experiment
     experiment = Experiment(
         project_id=project_id,
@@ -127,14 +138,15 @@ async def create_experiment(
         status=ExperimentStatus.PENDING,
         config=experiment_data.config.model_dump(),
         iterations_completed=0,
+        specification_file=project.specification_file,
     )
 
     db.add(experiment)
     db.commit()
     db.refresh(experiment)
 
-    # TODO: Queue experiment for execution with Celery
-    # For now, just return the created experiment
+    # Run experiment in background
+    background_tasks.add_task(run_experiment, experiment.id)
 
     return ExperimentResponse(
         id=experiment.id,
