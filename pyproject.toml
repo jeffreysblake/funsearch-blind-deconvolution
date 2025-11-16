@@ -1,0 +1,149 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "funsearch-framework"
+version = "0.1.0"
+description = "General-purpose program synthesis framework using FunSearch algorithm"
+authors = [{name = "FunSearch Team"}]
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+
+dependencies = [
+    # Core
+    "numpy>=1.24.0",
+    "scipy>=1.11.0",
+
+    # Backend API
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "websockets>=12.0",
+    "python-multipart>=0.0.6",
+
+    # Database
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.13.0",
+    "psycopg2-binary>=2.9.9",  # PostgreSQL driver
+
+    # Data validation
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+
+    # Configuration
+    "pyyaml>=6.0.1",
+    "python-dotenv>=1.0.0",
+
+    # Task queue
+    "celery>=5.3.0",
+    "redis>=5.0.0",
+
+    # Experiment tracking
+    "mlflow>=2.10.0",
+
+    # LM Studio integration (will be optional for prod)
+    "openai>=1.10.0",  # OpenAI-compatible client
+    "httpx>=0.26.0",
+
+    # CLI
+    "click>=8.1.0",
+    "rich>=13.7.0",  # Beautiful terminal output
+    "typer>=0.9.0",
+
+    # Templates
+    "jinja2>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "httpx>=0.26.0",  # For TestClient
+
+    # Code quality
+    "black>=24.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+
+    # Type stubs
+    "types-pyyaml",
+    "types-redis",
+]
+
+docker = [
+    "docker>=7.0.0",  # For Docker sandbox
+]
+
+[project.scripts]
+funsearch = "cli.main:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["backend*", "cli*", "config*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "mlflow.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "celery.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = "-v --cov=backend --cov=cli --cov-report=term-missing"
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["backend", "cli"]
+omit = ["*/tests/*", "*/migrations/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

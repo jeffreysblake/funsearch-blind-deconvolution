@@ -1,0 +1,41 @@
+# Development configuration (for web instance with mocks)
+mode: development
+
+llm:
+  provider: template_mock
+  model: mock-qwen-8b
+  base_url: http://localhost:1234/v1
+  temperature: 1.0
+  max_tokens: 512
+  timeout: 30
+
+sandbox:
+  provider: subprocess
+  max_workers: 4
+  timeout: 10
+  image: funsearch-sandbox:latest
+  limits:
+    memory: 256m
+    cpu_cores: 1
+
+funsearch:
+  samples_per_prompt: 2
+  num_islands: 3
+  reset_period: 10000
+  cluster_sampling_temperature_init: 0.1
+  cluster_sampling_temperature_period: 2000
+
+execution:
+  max_iterations: 10000
+  checkpoint_interval: 500
+  log_level: INFO
+
+database:
+  url: sqlite:///dev.db
+  echo: false
+  pool_size: 5
+  max_overflow: 0
+
+mlflow:
+  tracking_uri: sqlite:///mlflow.db
+  experiment_name: funsearch-dev
