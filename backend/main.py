@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api import health, projects
+from backend.api import experiments, health, models, projects, templates, websocket
 from backend.models import init_db
 
 # Create FastAPI app
@@ -30,6 +30,10 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router, tags=["Health"])
 app.include_router(projects.router, prefix="/api/v1", tags=["Projects"])
+app.include_router(experiments.router, prefix="/api/v1", tags=["Experiments"])
+app.include_router(models.router, prefix="/api/v1", tags=["Models"])
+app.include_router(templates.router, prefix="/api/v1", tags=["Templates"])
+app.include_router(websocket.router, tags=["WebSocket"])
 
 
 @app.on_event("startup")
