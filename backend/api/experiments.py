@@ -1,6 +1,7 @@
 """Experiments API endpoints."""
 
 import asyncio
+import logging
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
@@ -12,6 +13,14 @@ from sqlalchemy.orm import Session
 from backend.models import Experiment, ExperimentStatus, Project, get_db
 from backend.services.experiment_runner import run_experiment
 
+# Try to import Celery
+try:
+    from backend.tasks.experiments import run_experiment_task, stop_experiment_task
+    CELERY_AVAILABLE = True
+except ImportError:
+    CELERY_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -145,8 +154,17 @@ async def create_experiment(
     db.commit()
     db.refresh(experiment)
 
-    # Run experiment in background
-    background_tasks.add_task(run_experiment, experiment.id)
+    # Run experiment in background (Celery if available, otherwise BackgroundTasks)
+    if CELERY_AVAILABLE:
+        # Use Celery for distributed execution
+        task = run_experiment_task.delay(str(experiment.id))
+        experiment.task_id = task.id
+        db.commit()
+        logger.info(f"Experiment {experiment.id} queued with Celery task {task.id}")
+    else:
+        # Fallback to FastAPI BackgroundTasks
+        background_tasks.add_task(run_experiment, experiment.id)
+        logger.info(f"Experiment {experiment.id} started with BackgroundTasks")
 
     return ExperimentResponse(
         id=experiment.id,
@@ -208,7 +226,15 @@ async def stop_experiment(experiment_id: UUID, db: Session = Depends(get_db)):
             detail=f"Cannot stop experiment with status: {experiment.status}",
         )
 
-    # TODO: Stop Celery task
+    # Stop experiment (Celery if available)
+    if CELERY_AVAILABLE and experiment.task_id:
+        try:
+            stop_experiment_task.delay(str(experiment_id))
+            logger.info(f"Sent stop request for experiment {experiment_id}")
+        except Exception as e:
+            logger.error(f"Failed to stop Celery task: {e}")
+
+    # Update status
     experiment.status = ExperimentStatus.STOPPED
     experiment.completed_at = datetime.utcnow()
 

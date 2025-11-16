@@ -1,0 +1,160 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: funsearch-postgres
+    environment:
+      POSTGRES_USER: funsearch
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-funsearch_dev}
+      POSTGRES_DB: funsearch
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U funsearch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - funsearch
+
+  # Redis (Message Broker for Celery)
+  redis:
+    image: redis:7-alpine
+    container_name: funsearch-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "7353:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - funsearch
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: funsearch-backend
+    environment:
+      - DATABASE_URL=postgresql://funsearch:${POSTGRES_PASSWORD:-funsearch_dev}@postgres:5432/funsearch
+      - REDIS_URL=redis://redis:6379/0
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    ports:
+      - "7351:7351"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./examples:/app/examples:ro
+      - /var/run/docker.sock:/var/run/docker.sock  # For Docker sandbox
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - funsearch
+    restart: unless-stopped
+
+  # Celery Worker
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: funsearch-worker
+    environment:
+      - DATABASE_URL=postgresql://funsearch:${POSTGRES_PASSWORD:-funsearch_dev}@postgres:5432/funsearch
+      - REDIS_URL=redis://redis:6379/0
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./examples:/app/examples:ro
+      - /var/run/docker.sock:/var/run/docker.sock  # For Docker sandbox
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - funsearch
+    restart: unless-stopped
+    deploy:
+      replicas: 2  # Run 2 workers for parallel execution
+
+  # Flower (Celery monitoring)
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: funsearch-flower
+    command: celery -A backend.celery_app flower --port=5555
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    networks:
+      - funsearch
+    restart: unless-stopped
+
+  # MLflow Tracking Server
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.9.2
+    container_name: funsearch-mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri postgresql://funsearch:${POSTGRES_PASSWORD:-funsearch_dev}@postgres:5432/mlflow
+      --default-artifact-root /mlflow/artifacts
+    ports:
+      - "7352:5000"
+    volumes:
+      - mlflow_data:/mlflow/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - funsearch
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: funsearch-frontend
+    ports:
+      - "7350:7350"
+    depends_on:
+      - backend
+    networks:
+      - funsearch
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  mlflow_data:
+    driver: local
+
+networks:
+  funsearch:
+    driver: bridge

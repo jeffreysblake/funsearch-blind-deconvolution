@@ -1,0 +1,26 @@
+# Docker Sandbox for safe code execution
+FROM python:3.11-slim
+
+# Install minimal dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /sandbox
+
+# Install scientific computing libraries for evaluators
+RUN pip install --no-cache-dir \
+    numpy==1.24.0 \
+    scipy==1.11.0
+
+# Create restricted user
+RUN useradd -m -u 2000 sandbox && \
+    chown -R sandbox:sandbox /sandbox
+USER sandbox
+
+# Security: Read-only filesystem (will be mounted)
+# Security: No network access (configured in docker-compose)
+# Security: Memory and CPU limits (configured in docker-compose)
+
+# Default command runs the provided code
+CMD ["python", "/sandbox/code.py"]

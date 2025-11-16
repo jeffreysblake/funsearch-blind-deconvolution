@@ -1,0 +1,44 @@
+# Backend Dockerfile for FunSearch
+FROM python:3.11-slim as base
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY backend/ ./backend/
+COPY config/ ./config/
+COPY implementation/ ./implementation/
+COPY cli/ ./cli/
+
+# Create directories
+RUN mkdir -p /app/data /app/logs
+
+# Non-root user for security
+RUN useradd -m -u 1000 funsearch && \
+    chown -R funsearch:funsearch /app
+USER funsearch
+
+# Environment variables
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Expose port
+EXPOSE 7351
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:7351/health || exit 1
+
+# Run with uvicorn
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "7351"]

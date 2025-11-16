@@ -1,0 +1,39 @@
+# Celery Worker Dockerfile for FunSearch
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir celery[redis] flower
+
+# Copy application code
+COPY backend/ ./backend/
+COPY config/ ./config/
+COPY implementation/ ./implementation/
+COPY examples/ ./examples/
+
+# Create directories
+RUN mkdir -p /app/data /app/logs
+
+# Non-root user
+RUN useradd -m -u 1000 funsearch && \
+    chown -R funsearch:funsearch /app
+USER funsearch
+
+# Environment variables
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV C_FORCE_ROOT=false
+
+# Run Celery worker
+CMD ["celery", "-A", "backend.celery_app", "worker", "--loglevel=info", "--concurrency=4"]
